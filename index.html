@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Colorear · Acas</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --panel: #16213e;
+    --panel2: #0f3460;
+    --accent: #e94560;
+    --accent2: #f5a623;
+    --text: #eaeaea;
+    --muted: #7a7a9a;
+    --btn: #1e2a4a;
+    --btn-h: #2a3a6a;
+    --radius: 10px;
+    --font: 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; touch-action: none; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* TOOLBAR TOP */
+  #toolbar { display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: var(--panel); border-bottom: 1px solid #2a2a4a; flex-wrap: wrap; z-index: 10; }
+  .tbtn { background: var(--btn); border: 1px solid #2a3a6a; color: var(--text); border-radius: 7px; padding: 5px 8px; font-size: 11px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 38px; transition: background .15s; user-select: none; }
+  .tbtn:hover, .tbtn.active { background: var(--accent); border-color: var(--accent); }
+  .tbtn span { font-size: 16px; line-height: 1; }
+  .sep { width: 1px; height: 32px; background: #2a3a6a; margin: 0 2px; }
+
+  /* MAIN AREA */
+  #main { display: flex; flex: 1; overflow: hidden; }
+
+  /* SIDE PANEL */
+  #side { width: 220px; background: var(--panel); border-right: 1px solid #2a2a4a; overflow-y: auto; display: flex; flex-direction: column; gap: 0; }
+  .section { border-bottom: 1px solid #2a2a4a; }
+  .sec-title { background: var(--panel2); padding: 6px 10px; font-size: 11px; font-weight: 600; color: var(--accent2); letter-spacing: .5px; text-transform: uppercase; cursor: pointer; display: flex; justify-content: space-between; }
+  .sec-body { padding: 8px; display: flex; flex-wrap: wrap; gap: 5px; }
+  .sec-body.hidden { display: none; }
+
+  /* COLOR PALETTE */
+  .swatch { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform .1s; }
+  .swatch:hover, .swatch.sel { border-color: #fff; transform: scale(1.2); }
+  #customColor { width: 34px; height: 34px; padding: 0; border: none; border-radius: 6px; cursor: pointer; background: none; }
+
+  /* BRUSH SIZE */
+  #brushSize { width: 100%; accent-color: var(--accent); }
+  #brushPreview { width: 100%; height: 30px; display: flex; align-items: center; justify-content: center; }
+
+  /* SHAPES / ICONS */
+  .shape-btn { width: 36px; height: 36px; background: var(--btn); border: 1px solid #2a3a6a; border-radius: 6px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: background .15s; }
+  .shape-btn:hover, .shape-btn.active { background: var(--accent); }
+
+  /* TEXT PANEL */
+  #textInput { width: 100%; background: var(--bg); border: 1px solid #2a3a6a; border-radius: 6px; color: var(--text); padding: 4px 6px; font-size: 13px; }
+  #fontSize { width: 60px; background: var(--bg); border: 1px solid #2a3a6a; border-radius: 5px; color: var(--text); padding: 3px 5px; font-size: 12px; }
+  .dir-btn { padding: 3px 7px; font-size: 10px; }
+  select.sel-input { background: var(--bg); border: 1px solid #2a3a6a; border-radius: 6px; color: var(--text); padding: 4px 6px; font-size: 12px; width: 100%; }
+
+  /* CANVAS AREA */
+  #canvasWrap { flex: 1; display: flex; align-items: center; justify-content: center; overflow: auto; background: #0d0d1a; position: relative; }
+  #mainCanvas { cursor: crosshair; display: block; box-shadow: 0 0 40px #000a; }
+
+  /* STATUS BAR */
+  #status { background: var(--panel); border-top: 1px solid #2a2a4a; padding: 3px 12px; font-size: 11px; color: var(--muted); display: flex; gap: 16px; align-items: center; }
+
+  /* GRADIENT EDITOR */
+  .grad-stops { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+  .grad-color { width: 28px; height: 28px; border-radius: 4px; border: none; padding: 0; cursor: pointer; }
+
+  /* SCROLLBAR */
+  #side::-webkit-scrollbar { width: 4px; }
+  #side::-webkit-scrollbar-thumb { background: #2a3a6a; border-radius: 2px; }
+
+  /* PAPER SIZE LABELS */
+  .paper-btn { font-size: 10px; padding: 3px 6px; white-space: nowrap; }
+
+  /* MODAL */
+  #modal { display: none; position: fixed; inset: 0; background: #000a; z-index: 100; align-items: center; justify-content: center; }
+  #modal.show { display: flex; }
+  #modalBox { background: var(--panel); border-radius: 12px; padding: 20px; min-width: 260px; border: 1px solid #2a3a6a; }
+  #modalBox h3 { margin-bottom: 12px; color: var(--accent2); }
+  #modalBox label { font-size: 12px; color: var(--muted); display: block; margin: 6px 0 2px; }
+  #modalBox input, #modalBox select { width: 100%; background: var(--bg); border: 1px solid #2a3a6a; border-radius: 6px; color: var(--text); padding: 5px 8px; font-size: 13px; }
+  .modal-btns { display: flex; gap: 8px; margin-top: 14px; }
+  .modal-btns button { flex: 1; padding: 8px; border-radius: 7px; border: none; cursor: pointer; font-size: 13px; }
+  .btn-ok { background: var(--accent); color: #fff; }
+  .btn-cancel { background: var(--btn); color: var(--text); }
+</style>
+</head>
+<body>
+
+<!-- TOOLBAR TOP -->
+<div id="toolbar">
+  <button class="tbtn active" id="btnPen" onclick="setTool('pen')"><span>✏️</span>Pincel</button>
+  <button class="tbtn" id="btnEraser" onclick="setTool('eraser')"><span>🧹</span>Borrar</button>
+  <button class="tbtn" id="btnFill" onclick="setTool('fill')"><span>🪣</span>Relleno</button>
+  <button class="tbtn" id="btnGrad" onclick="setTool('gradient')"><span>🌈</span>Degradado</button>
+  <button class="tbtn" id="btnLine" onclick="setTool('line')"><span>📏</span>Línea</button>
+  <button class="tbtn" id="btnHorizon" onclick="setTool('horizon')"><span>🏔️</span>Montaña</button>
+  <button class="tbtn" id="btnText" onclick="setTool('text')"><span>🔤</span>Texto</button>
+  <button class="tbtn" id="btnEyedrop" onclick="setTool('eyedrop')"><span>💉</span>Cuentag.</button>
+  <div class="sep"></div>
+  <button class="tbtn" onclick="undoAction()"><span>↩️</span>Deshacer</button>
+  <button class="tbtn" onclick="clearCanvas()"><span>🗑️</span>Limpiar</button>
+  <button class="tbtn" onclick="showSizeModal()"><span>📄</span>Tamaño</button>
+  <button class="tbtn" onclick="saveImage()"><span>💾</span>Guardar PNG</button>
+  <button class="tbtn" onclick="toggleBg()"><span>⬜</span>Fondo</button>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div id="main">
+
+  <!-- SIDE PANEL -->
+  <div id="side">
+
+    <!-- COLOR PALETTE -->
+    <div class="section">
+      <div class="sec-title" onclick="toggleSec(this)">🎨 Colores <span>▾</span></div>
+      <div class="sec-body" id="paletteBody">
+        <!-- swatches generados por JS -->
+        <input type="color" id="customColor" value="#e94560" title="Color personalizado" oninput="setColor(this.value)">
+      </div>
+    </div>
+
+    <!-- CREAR PALETA -->
+    <div class="section">
+      <div class="sec-title" onclick="toggleSec(this)">🖌️ Mi Paleta <span>▾</span></div>
+      <div class="sec-body" id="myPaletteBody">
+        <div style="width:100%;display:flex;gap:4px;align-items:center;">
+          <input type="color" id="addColorPick" style="width:34px;height:34px;border:none;padding:0;border-radius:6px;cursor:pointer;">
+          <button class="tbtn" style="flex:1;" onclick="addToMyPalette()">+ Añadir</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PINCEL SIZE / TYPE -->
+    <div class="section">
+      <div class="sec-title" onclick="toggleSec(this)">🖊️ Pincel <span>▾</span></div>
+      <div class="sec-body" style="flex-direction:column;gap:6px;">
+        <input type="range" id="brushSize" min="1" max="80" value="8" oninput="updateBrush()">
+        <div id="brushPreview"><canvas id="prevCanvas" width="160" height="30"></canvas></div>
+        <select class="sel-input" id="brushType" onchange="updateBrush()">
+          <option value="round">● Redondo</option>
+          <option value="square">■ Cuadrado</option>
+          <option value="spray">✦ Spray</option>
+          <option value="star">★ Estrella</option>
+          <option value="heart">♥ Corazón</option>
+          <option value="leaf">🌿 Hoja</option>
+          <option value="circle">○ Círculo hueco</option>
+          <option value="diamond">◆ Diamante</option>
+        </select>
+        <label style="font-size:11px;color:var(--muted)">Opacidad</label>
+        <input type="range" id="brushOpacity" min="5" max="100" value="100" oninput="updateBrush()">
+      </div>
+    </div>
+
+    <!-- FORMAS / ICONOS -->
+    <div class="section">
+      <div class="sec-title" onclick="toggleSec(this)">🔷 Formas <span>▾</span></div>
+      <div class="sec-body">
+        <button class="shape-btn" onclick="setShape('circle')" title="Círculo">⭕</button>
+        <button class="shape-btn" onclick="setShape('rect')" title="Rectángulo">⬜</button>
+        <button class="shape-btn" onclick="setShape('triangle')" title="Triángulo">🔺</button>
+        <button class="shape-btn" onclick="setShape('star')" title="Estrella">⭐</button>
+        <button class="shape-btn" onclick="setShape('heart')" title="Corazón">❤️</button>
+        <button class="shape-btn" onclick="setShape('flower')" title="Flor">🌸</button>
+        <button class="shape-btn" onclick="setShape('sun')" title="Sol">☀️</button>
+        <button class="shape-btn" onclick="setShape('moon')" title="Luna">🌙</button>
+        <button class="shape-btn" onclick="setShape('house')" title="Casa">🏠</button>
+        <button class="shape-btn" onclick="setShape('tree')" title="Árbol">🌲</button>
+        <button class="shape-btn" onclick="setShape('cloud')" title="Nube">☁️</button>
+        <button class="shape-btn" onclick="setShape('arrow')" title="Flecha">➡️</button>
+        <button class="shape-btn" onclick="setShape('music')" title="Nota Musical">🎵</button>
+        <button class="shape-btn" onclick="setShape('butterfly')" title="Mariposa">🦋</button>
+        <button class="shape-btn" onclick="setShape('bird')" title="Pájaro">🐦</button>
+        <button class="shape-btn" onclick="setShape('fish')" title="Pez">🐟</button>
+      </div>
+    </div>
+
+    <!-- DEGRADADO -->
+    <div class="section">
+      <div class="sec-title" onclick="toggleSec(this)">🌈 Degradado <span>▾</span></div>
+      <div class="sec-body" style="flex-direction:column;gap:6px;">
+        <div class="grad-stops">
+          <input type="color" class="grad-color" id="grad1" value="#e94560">
+          <span style="font-size:11px;color:var(--muted)">→</span>
+          <input type="color" class="grad-color" id="grad2" value="#f5a623">
+          <span style="font-size:11px;color:var(--muted)">→</span>
+          <input type="color" class="grad-color" id="grad3" value="#00b4d8">
+        </div>
+        <select class="sel-input" id="gradDir">
+          <option value="lr">← → Horizontal</option>
+          <option value="tb">↓ Vertical</option>
+          <option value="diag">↘ Diagonal</option>
+          <option value="radial">◎ Radial</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- TEXTO -->
+    <div class="section">
+      <div class="sec-title" onclick="toggleSec(this)">🔤 Texto <span>▾</span></div>
+      <div class="sec-body" style="flex-direction:column;gap:5px;">
+        <input type="text" id="textInput" placeholder="Escribe aquí..." value="Hola">
+        <div style="display:flex;gap:4px;align-items:center;">
+          <input id="fontSize" type="number" value="32" min="8" max="200">
+          <select class="sel-input" id="fontFamily" style="flex:1;">
+            <option>Arial</option>
+            <option>Georgia</option>
+            <option>Courier New</option>
+            <option>Impact</option>
+            <option>Comic Sans MS</option>
+            <option>Times New Roman</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <button class="tbtn dir-btn" onclick="setTextDir('h')">→ Horiz.</button>
+          <button class="tbtn dir-btn" onclick="setTextDir('v')">↓ Vert.</button>
+          <button class="tbtn dir-btn" onclick="setTextDir('d')">↘ Diag.</button>
+        </div>
+        <label style="font-size:11px;color:var(--muted)">Color relleno texto</label>
+        <input type="color" id="textFill" value="#ffffff" style="width:100%;height:28px;border:none;border-radius:6px;cursor:pointer;">
+        <label style="font-size:11px;color:var(--muted)">Degradado en texto</label>
+        <input type="checkbox" id="textGrad"> <span style="font-size:11px;">Activar degradado</span>
+      </div>
+    </div>
+
+    <!-- FONDO -->
+    <div class="section">
+      <div class="sec-title" onclick="toggleSec(this)">⬜ Fondo Hoja <span>▾</span></div>
+      <div class="sec-body" style="flex-direction:column;gap:5px;">
+        <input type="color" id="bgColor" value="#ffffff" style="width:100%;height:28px;border:none;border-radius:6px;cursor:pointer;" oninput="applyBg()">
+        <button class="tbtn" style="width:100%;" onclick="setBgTransparent()">🔲 Transparente</button>
+        <button class="tbtn" style="width:100%;" onclick="applyBg()">✅ Aplicar color</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CANVAS -->
+  <div id="canvasWrap">
+    <canvas id="mainCanvas"></canvas>
+  </div>
+</div>
+
+<!-- STATUS -->
+<div id="status">
+  <span id="statusTool">Herramienta: Pincel</span>
+  <span id="statusPos">X:0 Y:0</span>
+  <span id="statusSize">Lienzo: cargando...</span>
+  <span id="statusColor" style="display:flex;align-items:center;gap:4px;">Color: <span id="colorDot" style="display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid #fff;background:#e94560;"></span></span>
+</div>
+
+<!-- MODAL TAMAÑO -->
+<div id="modal">
+  <div id="modalBox">
+    <h3>📄 Tamaño del Lienzo</h3>
+    <label>Preset de papel</label>
+    <select id="paperPreset" onchange="applyPreset()">
+      <option value="">— Elige un tamaño —</option>
+      <option value="794,1123">A4 Portrait (794×1123)</option>
+      <option value="1123,794">A4 Landscape (1123×794)</option>
+      <option value="559,794">A5 Portrait (559×794)</option>
+      <option value="794,559">A5 Landscape (794×559)</option>
+      <option value="1587,2245">A3 Portrait (1587×2245)</option>
+      <option value="1080,1080">Instagram Cuadrado (1080×1080)</option>
+      <option value="1080,1920">Story (1080×1920)</option>
+      <option value="800,600">Pantalla 800×600</option>
+    </select>
+    <label>Ancho (px)</label>
+    <input type="number" id="cWidth" value="794" min="100" max="4000">
+    <label>Alto (px)</label>
+    <input type="number" id="cHeight" value="1123" min="100" max="4000">
+    <div class="modal-btns">
+      <button class="btn-ok" onclick="applySize()">✅ Aplicar</button>
+      <button class="btn-cancel" onclick="closeModal()">❌ Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const canvas = document.getElementById('mainCanvas');
+const ctx = canvas.getContext('2d');
+let tool = 'pen';
+let color = '#e94560';
+let brushSize = 8;
+let brushOpacity = 1;
+let brushType = 'round';
+let drawing = false;
+let startX, startY;
+let undoStack = [];
+let transparentBg = false;
+let textDir = 'h';
+let shapeMode = null;
+let lastX, lastY;
+let horizonPoints = [];
+let horizonDrawing = false;
+
+// ============================================================
+// INIT
+// ============================================================
+function initCanvas(w=794, h=1123) {
+  const oldData = canvas.width > 0 ? ctx.getImageData(0,0,canvas.width,canvas.height) : null;
+  canvas.width = w; canvas.height = h;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0,0,w,h);
+  if(oldData) { try { ctx.putImageData(oldData,0,0); } catch(e){} }
+  document.getElementById('statusSize').textContent = `Lienzo: ${w}×${h}px`;
+  saveUndo();
+}
+initCanvas();
+
+// ============================================================
+// PALETTE
+// ============================================================
+const palette = [
+  '#000000','#ffffff','#e94560','#f5a623','#ffe066','#4caf50','#00b4d8','#9b59b6',
+  '#ff6b6b','#ffa07a','#98d8c8','#6c5ce7','#fd79a8','#00cec9','#2d3436','#636e72',
+  '#b2bec3','#dfe6e9','#e17055','#74b9ff','#55efc4','#a29bfe','#fab1a0','#fdcb6e',
+  '#d63031','#0984e3','#00b894','#6d4c41','#f8bbd9','#e8f5e9'
+];
+const pb = document.getElementById('paletteBody');
+palette.forEach(c => {
+  const s = document.createElement('div');
+  s.className='swatch'; s.style.background=c;
+  s.onclick=()=>setColor(c);
+  pb.insertBefore(s, document.getElementById('customColor'));
+});
+document.getElementById('customColor').oninput = e => setColor(e.target.value);
+
+function setColor(c) {
+  color = c;
+  document.getElementById('customColor').value = c;
+  document.getElementById('colorDot').style.background = c;
+  document.querySelectorAll('.swatch').forEach(s=>s.classList.toggle('sel', s.style.background===c||rgbToHex(s.style.background)===c));
+}
+function rgbToHex(rgb){
+  const m=rgb.match(/\d+/g); if(!m)return rgb;
+  return '#'+m.map(x=>parseInt(x).toString(16).padStart(2,'0')).join('');
+}
+
+function addToMyPalette() {
+  const c = document.getElementById('addColorPick').value;
+  const body = document.getElementById('myPaletteBody');
+  const s = document.createElement('div');
+  s.className='swatch'; s.style.background=c;
+  s.onclick=()=>setColor(c);
+  body.appendChild(s);
+}
+
+// ============================================================
+// BRUSH PREVIEW
+// ============================================================
+function updateBrush() {
+  brushSize = +document.getElementById('brushSize').value;
+  brushOpacity = +document.getElementById('brushOpacity').value/100;
+  brushType = document.getElementById('brushType').value;
+  const pc = document.getElementById('prevCanvas');
+  const px = pc.getContext('2d');
+  px.clearRect(0,0,160,30);
+  px.globalAlpha = brushOpacity;
+  px.fillStyle = color;
+  px.strokeStyle = color;
+  drawBrushShape(px, 80, 15, brushSize);
+}
+function drawBrushShape(cx2, x, y, size) {
+  const s = Math.min(size, 28);
+  cx2.beginPath();
+  switch(brushType) {
+    case 'round': cx2.arc(x,y,s/2,0,Math.PI*2); cx2.fill(); break;
+    case 'square': cx2.fillRect(x-s/2,y-s/2,s,s); break;
+    case 'circle': cx2.arc(x,y,s/2,0,Math.PI*2); cx2.lineWidth=2; cx2.stroke(); break;
+    case 'star': drawStar(cx2,x,y,5,s/2,s/4); cx2.fill(); break;
+    case 'heart': drawHeart(cx2,x,y,s); cx2.fill(); break;
+    case 'diamond': drawDiamond(cx2,x,y,s); cx2.fill(); break;
+    case 'leaf': drawLeaf(cx2,x,y,s); cx2.fill(); break;
+    case 'spray': drawSpray(cx2,x,y,s); break;
+  }
+}
+
+// ============================================================
+// TOOL SELECTION
+// ============================================================
+function setTool(t) {
+  tool = t; shapeMode = null;
+  document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
+  const map = {pen:'btnPen',eraser:'btnEraser',fill:'btnFill',gradient:'btnGrad',line:'btnLine',horizon:'btnHorizon',text:'btnText',eyedrop:'btnEyedrop'};
+  if(map[t]) document.getElementById(map[t]).classList.add('active');
+  document.getElementById('statusTool').textContent = 'Herramienta: '+t;
+  horizonPoints = [];
+  canvas.style.cursor = t==='eyedrop' ? 'crosshair' : t==='fill' ? 'cell' : 'crosshair';
+}
+function setShape(s) { shapeMode = s; setTool('shape'); document.getElementById('statusTool').textContent = 'Forma: '+s; }
+function setTextDir(d) { textDir = d; }
+
+// ============================================================
+// CANVAS EVENTS
+// ============================================================
+function getPos(e) {
+  const r = canvas.getBoundingClientRect();
+  const scaleX = canvas.width/r.width, scaleY = canvas.height/r.height;
+  if(e.touches) return { x:(e.touches[0].clientX-r.left)*scaleX, y:(e.touches[0].clientY-r.top)*scaleY };
+  return { x:(e.clientX-r.left)*scaleX, y:(e.clientY-r.top)*scaleY };
+}
+
+canvas.addEventListener('pointerdown', e=>{ e.preventDefault(); const p=getPos(e); onDown(p.x,p.y); });
+canvas.addEventListener('pointermove', e=>{ e.preventDefault(); const p=getPos(e); onMove(p.x,p.y); document.getElementById('statusPos').textContent=`X:${Math.round(p.x)} Y:${Math.round(p.y)}`; });
+canvas.addEventListener('pointerup', e=>{ e.preventDefault(); onUp(); });
+canvas.addEventListener('pointerleave', e=>{ if(drawing){ onUp(); } });
+
+function onDown(x,y) {
+  startX=x; startY=y; lastX=x; lastY=y;
+  if(tool==='fill') { saveUndo(); floodFill(Math.round(x),Math.round(y),color); return; }
+  if(tool==='eyedrop') { pickColor(Math.round(x),Math.round(y)); return; }
+  if(tool==='text') { saveUndo(); drawText(x,y); return; }
+  if(tool==='horizon') { horizonPoints.push({x,y}); drawHorizonPreview(); return; }
+  saveUndo();
+  drawing=true;
+  if(tool==='pen'||tool==='eraser') startStroke(x,y);
+}
+function onMove(x,y) {
+  if(!drawing) return;
+  if(tool==='pen'||tool==='eraser') continueStroke(x,y);
+  if(tool==='line'||tool==='shape'||tool==='gradient') previewShape(x,y);
+  lastX=x; lastY=y;
+}
+function onUp() {
+  if(!drawing) return;
+  drawing=false;
+  if(tool==='line') finalizeLine(lastX,lastY);
+  if(tool==='shape') finalizeShape(lastX,lastY);
+  if(tool==='gradient') applyGradient(startX,startY,lastX,lastY);
+}
+
+// ============================================================
+// STROKE
+// ============================================================
+let strokeSnap = null;
+function startStroke(x,y) {
+  strokeSnap = ctx.getImageData(0,0,canvas.width,canvas.height);
+  ctx.globalAlpha = brushOpacity;
+  ctx.strokeStyle = tool==='eraser'?'#fff':color;
+  ctx.fillStyle = tool==='eraser'?'#fff':color;
+  ctx.lineCap = 'round'; ctx.lineJoin='round';
+  ctx.lineWidth = brushSize;
+  if(brushType==='round'||brushType==='circle') { ctx.beginPath(); ctx.moveTo(x,y); }
+  paintAt(x,y);
+}
+function continueStroke(x,y) {
+  if(brushType==='round') { ctx.lineTo(x,y); ctx.stroke(); }
+  else if(brushType==='spray') { paintAt(x,y); }
+  else { paintAt(x,y); }
+  lastX=x; lastY=y;
+}
+function paintAt(x,y) {
+  ctx.globalAlpha = brushOpacity;
+  ctx.fillStyle = tool==='eraser'?'#fff':color;
+  ctx.strokeStyle = tool==='eraser'?'#fff':color;
+  switch(brushType) {
+    case 'round': ctx.beginPath(); ctx.arc(x,y,brushSize/2,0,Math.PI*2); ctx.fill(); break;
+    case 'square': ctx.fillRect(x-brushSize/2,y-brushSize/2,brushSize,brushSize); break;
+    case 'circle': ctx.beginPath(); ctx.arc(x,y,brushSize/2,0,Math.PI*2); ctx.lineWidth=brushSize*0.2; ctx.stroke(); break;
+    case 'star': drawStar(ctx,x,y,5,brushSize/2,brushSize/4); ctx.fill(); break;
+    case 'heart': drawHeart(ctx,x,y,brushSize); ctx.fill(); break;
+    case 'diamond': drawDiamond(ctx,x,y,brushSize); ctx.fill(); break;
+    case 'leaf': drawLeaf(ctx,x,y,brushSize); ctx.fill(); break;
+    case 'spray': drawSpray(ctx,x,y,brushSize); break;
+  }
+}
+
+// ============================================================
+// SHAPES (drawn)
+// ============================================================
+let shapeSnap = null;
+function previewShape(x,y) {
+  if(!shapeSnap) shapeSnap = ctx.getImageData(0,0,canvas.width,canvas.height);
+  ctx.putImageData(shapeSnap,0,0);
+  ctx.globalAlpha = brushOpacity;
+  ctx.strokeStyle = color; ctx.fillStyle = color+'88';
+  ctx.lineWidth = brushSize;
+  if(tool==='line') { ctx.beginPath(); ctx.moveTo(startX,startY); ctx.lineTo(x,y); ctx.stroke(); }
+  else if(tool==='shape') drawShapeAt(ctx,shapeMode,startX,startY,x,y);
+  else if(tool==='gradient') {
+    const g = makeGradient(startX,startY,x,y);
+    ctx.fillStyle = g;
+    ctx.fillRect(Math.min(startX,x),Math.min(startY,y),Math.abs(x-startX),Math.abs(y-startY));
+  }
+}
+function finalizeLine(x,y) {
+  ctx.putImageData(shapeSnap,0,0);
+  ctx.globalAlpha=brushOpacity; ctx.strokeStyle=color; ctx.lineWidth=brushSize;
+  ctx.beginPath(); ctx.moveTo(startX,startY); ctx.lineTo(x,y); ctx.stroke();
+  shapeSnap=null;
+}
+function finalizeShape(x,y) {
+  ctx.putImageData(shapeSnap,0,0);
+  ctx.globalAlpha=brushOpacity; ctx.strokeStyle=color; ctx.fillStyle=color+'88'; ctx.lineWidth=brushSize;
+  drawShapeAt(ctx,shapeMode,startX,startY,x,y);
+  shapeSnap=null;
+}
+function applyGradient(x1,y1,x2,y2) {
+  if(shapeSnap) ctx.putImageData(shapeSnap,0,0);
+  const g = makeGradient(x1,y1,x2,y2);
+  ctx.globalAlpha=brushOpacity;
+  ctx.fillStyle=g;
+  ctx.fillRect(Math.min(x1,x2),Math.min(y1,y2),Math.abs(x2-x1),Math.abs(y2-y1));
+  shapeSnap=null;
+}
+function makeGradient(x1,y1,x2,y2) {
+  const c1=document.getElementById('grad1').value;
+  const c2=document.getElementById('grad2').value;
+  const c3=document.getElementById('grad3').value;
+  const dir=document.getElementById('gradDir').value;
+  let g;
+  if(dir==='radial') { const cx=(x1+x2)/2,cy=(y1+y2)/2,r=Math.hypot(x2-x1,y2-y1)/2; g=ctx.createRadialGradient(cx,cy,0,cx,cy,r); }
+  else if(dir==='lr') g=ctx.createLinearGradient(Math.min(x1,x2),0,Math.max(x1,x2),0);
+  else if(dir==='tb') g=ctx.createLinearGradient(0,Math.min(y1,y2),0,Math.max(y1,y2));
+  else g=ctx.createLinearGradient(x1,y1,x2,y2);
+  g.addColorStop(0,c1); g.addColorStop(0.5,c2); g.addColorStop(1,c3);
+  return g;
+}
+
+// ============================================================
+// SHAPE DRAWING FUNCTIONS
+// ============================================================
+function drawShapeAt(cx2,shape,x1,y1,x2,y2) {
+  const w=x2-x1,h=y2-y1,cx=(x1+x2)/2,cy=(y1+y2)/2,r=Math.min(Math.abs(w),Math.abs(h))/2;
+  cx2.beginPath();
+  switch(shape) {
+    case 'circle': cx2.arc(cx,cy,r,0,Math.PI*2); cx2.fill(); cx2.stroke(); break;
+    case 'rect': cx2.rect(x1,y1,w,h); cx2.fill(); cx2.stroke(); break;
+    case 'triangle': cx2.moveTo(cx,y1); cx2.lineTo(x2,y2); cx2.lineTo(x1,y2); cx2.closePath(); cx2.fill(); cx2.stroke(); break;
+    case 'star': drawStar(cx2,cx,cy,5,r,r*0.4); cx2.fill(); cx2.stroke(); break;
+    case 'heart': drawHeart(cx2,cx,cy,r*2); cx2.fill(); cx2.stroke(); break;
+    case 'flower': drawFlower(cx2,cx,cy,r); break;
+    case 'sun': drawSun(cx2,cx,cy,r); break;
+    case 'moon': drawMoon(cx2,cx,cy,r); break;
+    case 'house': drawHouse(cx2,x1,y1,w,h); break;
+    case 'tree': drawTree(cx2,cx,y1,r,h); break;
+    case 'cloud': drawCloud(cx2,cx,cy,r); break;
+    case 'arrow': drawArrow(cx2,x1,cy,x2,cy,r); break;
+    case 'music': drawMusic(cx2,cx,cy,r); break;
+    case 'butterfly': drawButterfly(cx2,cx,cy,r); break;
+    case 'bird': drawBird(cx2,cx,cy,r); break;
+    case 'fish': drawFish(cx2,cx,cy,r); break;
+  }
+}
+function drawStar(cx2,cx,cy,pts,ro,ri) {
+  cx2.beginPath();
+  for(let i=0;i<pts*2;i++){
+    const r2=i%2===0?ro:ri, a=Math.PI*i/pts - Math.PI/2;
+    i===0?cx2.moveTo(cx+r2*Math.cos(a),cy+r2*Math.sin(a)):cx2.lineTo(cx+r2*Math.cos(a),cy+r2*Math.sin(a));
+  }
+  cx2.closePath();
+}
+function drawHeart(cx2,cx,cy,size) {
+  const s=size/2;
+  cx2.beginPath();
+  cx2.moveTo(cx,cy+s*0.8);
+  cx2.bezierCurveTo(cx-s*1.2,cy-s*0.2,cx-s*1.5,cy-s*0.9,cx,cy-s*0.5);
+  cx2.bezierCurveTo(cx+s*1.5,cy-s*0.9,cx+s*1.2,cy-s*0.2,cx,cy+s*0.8);
+}
+function drawDiamond(cx2,cx,cy,s) {
+  cx2.beginPath(); cx2.moveTo(cx,cy-s/2); cx2.lineTo(cx+s/2,cy); cx2.lineTo(cx,cy+s/2); cx2.lineTo(cx-s/2,cy); cx2.closePath();
+}
+function drawLeaf(cx2,cx,cy,s) {
+  cx2.beginPath(); cx2.moveTo(cx,cy-s/2); cx2.quadraticCurveTo(cx+s/2,cy,cx,cy+s/2); cx2.quadraticCurveTo(cx-s/2,cy,cx,cy-s/2);
+}
+function drawSpray(cx2,cx,cy,r) {
+  const n=Math.round(r*2);
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2, d=Math.random()*r;
+    cx2.fillRect(cx+d*Math.cos(a),cy+d*Math.sin(a),1.5,1.5);
+  }
+}
+function drawFlower(cx2,cx,cy,r) {
+  for(let i=0;i<6;i++){
+    const a=Math.PI*i/3; cx2.beginPath();
+    cx2.ellipse(cx+r*0.6*Math.cos(a),cy+r*0.6*Math.sin(a),r*0.45,r*0.25,a,0,Math.PI*2);
+    cx2.fill();
+  }
+  cx2.beginPath(); cx2.arc(cx,cy,r*0.3,0,Math.PI*2); cx2.fill();
+}
+function drawSun(cx2,cx,cy,r) {
+  cx2.beginPath(); cx2.arc(cx,cy,r*0.5,0,Math.PI*2); cx2.fill();
+  for(let i=0;i<12;i++){
+    const a=Math.PI*2*i/12;
+    cx2.beginPath(); cx2.moveTo(cx+r*0.6*Math.cos(a),cy+r*0.6*Math.sin(a));
+    cx2.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a)); cx2.stroke();
+  }
+}
+function drawMoon(cx2,cx,cy,r) {
+  cx2.beginPath(); cx2.arc(cx,cy,r,0.4,Math.PI*1.6); cx2.fill();
+  cx2.globalCompositeOperation='destination-out';
+  cx2.beginPath(); cx2.arc(cx+r*0.4,cy,r*0.85,0,Math.PI*2); cx2.fill();
+  cx2.globalCompositeOperation='source-over';
+}
+function drawHouse(cx2,x1,y1,w,h) {
+  const mx=x1+w/2;
+  cx2.beginPath(); cx2.moveTo(mx,y1); cx2.lineTo(x1+w,y1+h*0.4); cx2.lineTo(x1,y1+h*0.4); cx2.closePath(); cx2.fill();
+  cx2.beginPath(); cx2.rect(x1+w*0.1,y1+h*0.4,w*0.8,h*0.6); cx2.fill(); cx2.stroke();
+}
+function drawTree(cx2,cx,ty,r,h) {
+  cx2.beginPath(); cx2.moveTo(cx,ty); cx2.lineTo(cx+r,ty+h*0.7); cx2.lineTo(cx-r,ty+h*0.7); cx2.closePath(); cx2.fill();
+  cx2.fillRect(cx-r*0.2,ty+h*0.65,r*0.4,h*0.35);
+}
+function drawCloud(cx2,cx,cy,r) {
+  cx2.beginPath(); cx2.arc(cx,cy,r*0.6,0,Math.PI*2); cx2.fill();
+  cx2.beginPath(); cx2.arc(cx-r*0.55,cy+r*0.15,r*0.45,0,Math.PI*2); cx2.fill();
+  cx2.beginPath(); cx2.arc(cx+r*0.55,cy+r*0.15,r*0.45,0,Math.PI*2); cx2.fill();
+  cx2.beginPath(); cx2.rect(cx-r,cy+r*0.15,r*2,r*0.45); cx2.fill();
+}
+function drawArrow(cx2,x1,cy,x2,_cy,r) {
+  cx2.beginPath(); cx2.moveTo(x1,cy-r*0.2); cx2.lineTo(x2-r*0.3,cy-r*0.2);
+  cx2.lineTo(x2-r*0.3,cy-r*0.5); cx2.lineTo(x2,cy); cx2.lineTo(x2-r*0.3,cy+r*0.5);
+  cx2.lineTo(x2-r*0.3,cy+r*0.2); cx2.lineTo(x1,cy+r*0.2); cx2.closePath(); cx2.fill();
+}
+function drawMusic(cx2,cx,cy,r) {
+  cx2.font=`bold ${r*1.8}px serif`; cx2.textAlign='center'; cx2.textBaseline='middle';
+  cx2.fillText('♪',cx,cy);
+}
+function drawButterfly(cx2,cx,cy,r) {
+  ctx.beginPath();
+  for(let s of [-1,1]){
+    cx2.beginPath();
+    cx2.ellipse(cx+s*r*0.55,cy-r*0.3,r*0.6,r*0.4,s*0.5,0,Math.PI*2); cx2.fill();
+    cx2.beginPath();
+    cx2.ellipse(cx+s*r*0.45,cy+r*0.35,r*0.45,r*0.3,-s*0.5,0,Math.PI*2); cx2.fill();
+  }
+  cx2.lineWidth=2; cx2.beginPath(); cx2.moveTo(cx,cy-r*0.7); cx2.lineTo(cx,cy+r*0.7); cx2.stroke();
+}
+function drawBird(cx2,cx,cy,r) {
+  cx2.beginPath(); cx2.moveTo(cx-r,cy); cx2.quadraticCurveTo(cx-r*0.5,cy-r*0.5,cx,cy);
+  cx2.quadraticCurveTo(cx+r*0.5,cy-r*0.5,cx+r,cy); cx2.stroke();
+  cx2.beginPath(); cx2.arc(cx,cy+r*0.1,r*0.4,0,Math.PI*2); cx2.fill();
+}
+function drawFish(cx2,cx,cy,r) {
+  cx2.beginPath(); cx2.ellipse(cx,cy,r*0.7,r*0.4,0,0,Math.PI*2); cx2.fill();
+  cx2.beginPath(); cx2.moveTo(cx+r*0.6,cy); cx2.lineTo(cx+r,cy-r*0.4); cx2.lineTo(cx+r,cy+r*0.4); cx2.closePath(); cx2.fill();
+  cx2.fillStyle='#fff'; cx2.beginPath(); cx2.arc(cx-r*0.2,cy-r*0.1,r*0.08,0,Math.PI*2); cx2.fill();
+}
+
+// ============================================================
+// HORIZON / MOUNTAIN TOOL
+// ============================================================
+let horizonSnap = null;
+function drawHorizonPreview() {
+  if(!horizonSnap) horizonSnap = ctx.getImageData(0,0,canvas.width,canvas.height);
+  ctx.putImageData(horizonSnap,0,0);
+  ctx.globalAlpha=brushOpacity; ctx.strokeStyle=color; ctx.lineWidth=brushSize;
+  ctx.beginPath();
+  horizonPoints.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+  ctx.stroke();
+}
+document.addEventListener('dblclick', ()=>{
+  if(tool==='horizon'&&horizonPoints.length>1) {
+    ctx.putImageData(horizonSnap,0,0);
+    ctx.globalAlpha=brushOpacity; ctx.strokeStyle=color; ctx.lineWidth=brushSize;
+    ctx.beginPath(); horizonPoints.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y)); ctx.stroke();
+    horizonPoints=[]; horizonSnap=null; saveUndo();
+  }
+});
+
+// ============================================================
+// FILL TOOL (flood fill)
+// ============================================================
+function floodFill(px,py,fillColor) {
+  const img = ctx.getImageData(0,0,canvas.width,canvas.height);
+  const data = img.data;
+  const w=canvas.width, h=canvas.height;
+  const idx=(x,y)=>(y*w+x)*4;
+  const ti=idx(px,py);
+  const tr=data[ti],tg=data[ti+1],tb=data[ti+2],ta=data[ti+3];
+  const [fr,fg,fb]=hexToRgb(fillColor);
+  if(tr===fr&&tg===fg&&tb===fb) return;
+  const stack=[[px,py]]; const visited=new Uint8Array(w*h);
+  while(stack.length){
+    const [x,y]=stack.pop();
+    if(x<0||x>=w||y<0||y>=h) continue;
+    const i=idx(x,y); const vi=y*w+x;
+    if(visited[vi]||!matchColor(data,i,tr,tg,tb,ta)) continue;
+    visited[vi]=1;
+    data[i]=fr; data[i+1]=fg; data[i+2]=fb; data[i+3]=255;
+    stack.push([x+1,y],[x-1,y],[x,y+1],[x,y-1]);
+  }
+  ctx.putImageData(img,0,0);
+}
+function matchColor(d,i,r,g,b,a,tol=30){
+  return Math.abs(d[i]-r)<tol&&Math.abs(d[i+1]-g)<tol&&Math.abs(d[i+2]-b)<tol&&Math.abs(d[i+3]-a)<tol;
+}
+function hexToRgb(hex){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return [r,g,b];
+}
+
+// ============================================================
+// EYEDROP
+// ============================================================
+function pickColor(x,y) {
+  const p=ctx.getImageData(x,y,1,1).data;
+  const c='#'+[p[0],p[1],p[2]].map(v=>v.toString(16).padStart(2,'0')).join('');
+  setColor(c);
+}
+
+// ============================================================
+// TEXT TOOL
+// ============================================================
+function drawText(x,y) {
+  const txt=document.getElementById('textInput').value||'Texto';
+  const sz=+document.getElementById('fontSize').value||32;
+  const ff=document.getElementById('fontFamily').value;
+  const useGrad=document.getElementById('textGrad').checked;
+  ctx.font=`bold ${sz}px "${ff}"`;
+  ctx.textBaseline='top';
+  ctx.globalAlpha=brushOpacity;
+  ctx.save();
+  ctx.translate(x,y);
+  if(textDir==='v') ctx.rotate(Math.PI/2);
+  else if(textDir==='d') ctx.rotate(Math.PI/4);
+  if(useGrad) {
+    const g=ctx.createLinearGradient(0,0,txt.length*sz*0.6,sz);
+    g.addColorStop(0,document.getElementById('grad1').value);
+    g.addColorStop(0.5,document.getElementById('grad2').value);
+    g.addColorStop(1,document.getElementById('grad3').value);
+    ctx.fillStyle=g;
+  } else { ctx.fillStyle=document.getElementById('textFill').value; }
+  ctx.fillText(txt,0,0);
+  ctx.restore();
+}
+
+// ============================================================
+// BG COLOR / TRANSPARENT
+// ============================================================
+let bgSnap = null;
+function applyBg() {
+  transparentBg=false;
+  const c=document.getElementById('bgColor').value;
+  const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+  ctx.fillStyle=c; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.putImageData(img,0,0);
+}
+function setBgTransparent() { transparentBg=true; clearCanvas(true); }
+function toggleBg() {
+  const bg=document.getElementById('bgColor').value;
+  transparentBg=!transparentBg;
+  if(!transparentBg) applyBg();
+  else { const img=ctx.getImageData(0,0,canvas.width,canvas.height); ctx.clearRect(0,0,canvas.width,canvas.height); ctx.putImageData(img,0,0); }
+}
+
+// ============================================================
+// UNDO
+// ============================================================
+function saveUndo() { if(undoStack.length>30) undoStack.shift(); undoStack.push(ctx.getImageData(0,0,canvas.width,canvas.height)); }
+function undoAction() { if(undoStack.length<2){ return; } undoStack.pop(); ctx.putImageData(undoStack[undoStack.length-1],0,0); }
+
+// ============================================================
+// CLEAR
+// ============================================================
+function clearCanvas(keepTransparent=false) {
+  saveUndo();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(!keepTransparent&&!transparentBg) { ctx.fillStyle=document.getElementById('bgColor').value||'#ffffff'; ctx.fillRect(0,0,canvas.width,canvas.height); }
+}
+
+// ============================================================
+// SAVE PNG
+// ============================================================
+function saveImage() {
+  const link=document.createElement('a');
+  link.download='acas-colorear-'+Date.now()+'.png';
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+}
+
+// ============================================================
+// SIZE MODAL
+// ============================================================
+function showSizeModal() { document.getElementById('modal').classList.add('show'); }
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+function applyPreset() {
+  const v=document.getElementById('paperPreset').value; if(!v) return;
+  const [w,h]=v.split(','); document.getElementById('cWidth').value=w; document.getElementById('cHeight').value=h;
+}
+function applySize() {
+  const w=+document.getElementById('cWidth').value||794;
+  const h=+document.getElementById('cHeight').value||1123;
+  initCanvas(w,h); closeModal();
+}
+
+// ============================================================
+// ACCORDION
+// ============================================================
+function toggleSec(el) { el.nextElementSibling.classList.toggle('hidden'); }
+
+// ============================================================
+// INIT BRUSH PREVIEW
+// ============================================================
+updateBrush();
+setColor('#e94560');
+</script>
+</body>
+</html>
